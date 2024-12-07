@@ -1,59 +1,82 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
 import logging
+import urllib.parse
+import traceback
 
 logger = logging.getLogger(__name__)
 
-# Get the DATABASE_URL from environment variable, with a default SQLite URL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./construction_crm.db")
+# Get the DATABASE_URL from environment variable
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    # Render provides PostgreSQL URLs starting with postgres://, but SQLAlchemy needs postgresql://
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# Log the raw DATABASE_URL for debugging
+logger.info(f"Raw DATABASE_URL: {DATABASE_URL}")
 
-logger.info(f"Using database URL type: {'PostgreSQL' if DATABASE_URL and 'postgresql' in DATABASE_URL else 'SQLite'}")
+# Validate and transform the DATABASE_URL
+if DATABASE_URL:
+    # Ensure the URL is properly parsed
+    try:
+        parsed_url = urllib.parse.urlparse(DATABASE_URL)
+        logger.info(f"Parsed URL - Scheme: {parsed_url.scheme}, Hostname: {parsed_url.hostname}")
+    except Exception as e:
+        logger.error(f"Error parsing DATABASE_URL: {e}")
 
-if not DATABASE_URL:
-    # Default to SQLite for local development
-    DATABASE_URL = "sqlite:///./construction_crm.db"
-    logger.info("No DATABASE_URL found, using SQLite database")
-
-# Create SQLAlchemy engine with proper arguments based on database type
-if DATABASE_URL.startswith("postgresql://"):
-    engine = create_engine(
-        DATABASE_URL,
-        pool_size=5,
-        max_overflow=10,
-        pool_timeout=30,
-        pool_pre_ping=True,
-        pool_recycle=300
-    )
-    logger.info("Created PostgreSQL engine with connection pooling")
+    # Handle Render's PostgreSQL URL format
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        logger.info("Converted postgres:// to postgresql://")
 else:
-    # SQLite engine doesn't support the same connection pool parameters
-    engine = create_engine(
-        DATABASE_URL, 
-        connect_args={"check_same_thread": False}
-    )
-    logger.info("Created SQLite engine")
+    # Fallback to SQLite for local development
+    DATABASE_URL = "sqlite:///./construction_crm.db"
+    logger.warning("No DATABASE_URL found, using SQLite as fallback")
 
+# Mask sensitive parts of the connection string for logging
+masked_url = DATABASE_URL
+if '@' in masked_url:
+    parts = masked_url.split('@')
+    masked_url = f"{parts[0][:10]}...@{parts[1]}"
+logger.info(f"Processed DATABASE_URL: {masked_url}")
+
+# Create SQLAlchemy engine with robust connection settings
 try:
+    if DATABASE_URL.startswith("postgresql://"):
+        engine = create_engine(
+            DATABASE_URL,
+            pool_size=5,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            connect_args={
+                "keepalives": 1,
+                "keepalives_idle": 30,
+                "keepalives_interval": 10,
+                "keepalives_count": 5
+            }
+        )
+        logger.info("Created PostgreSQL engine with advanced connection pooling")
+    else:
+        # SQLite configuration
+        engine = create_engine(
+            DATABASE_URL, 
+            connect_args={"check_same_thread": False}
+        )
+        logger.info("Created SQLite engine")
+
     # Test the database connection
     with engine.connect() as conn:
-        logger.info("Successfully connected to database")
+        logger.info("Successfully established database connection")
+
 except Exception as e:
-    logger.error(f"Failed to connect to database: {str(e)}")
+    logger.error(f"Database connection error: {str(e)}")
+    logger.error(f"Full traceback: {traceback.format_exc()}")
     raise
 
-# Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create Base class
 Base = declarative_base()
 
-# Dependency
 def get_db():
     db = SessionLocal()
     try:
