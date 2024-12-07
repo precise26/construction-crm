@@ -18,6 +18,7 @@ class LeadStatus(enum.Enum):
     NEGOTIATION = "NEGOTIATION"
     WON = "WON"
     LOST = "LOST"
+    CONVERTED = "CONVERTED"
 
 class LeadSource(enum.Enum):
     WEBSITE = "WEBSITE"
@@ -35,7 +36,7 @@ class Customer(Base):
     phone = Column(String, nullable=False)
     address = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=None, onupdate=datetime.datetime.utcnow, nullable=True)
 
     # Relationships
     projects = relationship("Project", back_populates="customer", cascade="all, delete-orphan")
@@ -51,11 +52,11 @@ class Project(Base):
     status = Column(Enum(ProjectStatus), nullable=False)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
-    start_date = Column(Date)
-    end_date = Column(Date)
-    budget = Column(Float)
-    revenue = Column(Float, default=0.0)
+    updated_at = Column(DateTime, default=None, onupdate=datetime.datetime.utcnow, nullable=True)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    budget = Column(Float, nullable=True)
+    revenue = Column(Float, default=0.0, nullable=True)
 
     # Relationships
     customer = relationship("Customer", back_populates="projects")
@@ -72,18 +73,18 @@ class Vendor(Base):
     phone = Column(String, nullable=False)
     services = Column(Text)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=None, onupdate=datetime.datetime.utcnow, nullable=True)
 
 class Interaction(Base):
     __tablename__ = "interactions"
 
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
-    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
     interaction_type = Column(String, nullable=False)
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=None, onupdate=datetime.datetime.utcnow, nullable=True)
 
     # Relationships
     customer = relationship("Customer", back_populates="interactions")
@@ -96,8 +97,8 @@ class Notification(Base):
     title = Column(String, nullable=False)
     message = Column(Text, nullable=False)
     notification_type = Column(String, nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"))
-    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     read = Column(Boolean, default=False, nullable=False)
 
@@ -112,9 +113,11 @@ class Lead(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=False, index=True)
     phone = Column(String, nullable=False)
-    address = Column(String)
+    address = Column(String, nullable=True)
     source = Column(Enum(LeadSource), nullable=False)
     status = Column(Enum(LeadStatus), nullable=False, default=LeadStatus.NEW)
-    notes = Column(Text)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=None, onupdate=datetime.datetime.utcnow, nullable=True)
+    converted_at = Column(DateTime, nullable=True)
+    converted_to_customer_id = Column(Integer, nullable=True)

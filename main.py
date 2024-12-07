@@ -32,73 +32,69 @@ logger = logging.getLogger(__name__)
 # Create database tables
 def initialize_db(db: Session):
     try:
-        # Create all tables
         logger.info("Creating database tables...")
+        # Drop all existing tables first to recreate with new schema
+        models.Base.metadata.drop_all(bind=engine)
         models.Base.metadata.create_all(bind=engine)
         
-        # Check if tables are empty
         logger.info("Checking if database is empty...")
-        if not db.query(models.Customer).first():
-            logger.info("Database is empty. Initializing sample data...")
+        
+        try:
+            # Create sample customers
+            customer1 = models.Customer(
+                name="John Doe",
+                email="john@example.com",
+                phone="555-0101",
+                address="123 Main St"
+            )
+            customer2 = models.Customer(
+                name="Jane Smith",
+                email="jane@example.com",
+                phone="555-0102",
+                address="456 Oak Ave"
+            )
+            db.add_all([customer1, customer2])
+            db.commit()
+            logger.info("Added sample customers")
             
-            try:
-                # Create sample customers
-                customer1 = models.Customer(
-                    name="John Doe",
-                    email="john@example.com",
-                    phone="555-0101",
-                    address="123 Main St"
-                )
-                customer2 = models.Customer(
-                    name="Jane Smith",
-                    email="jane@example.com",
-                    phone="555-0102",
-                    address="456 Oak Ave"
-                )
-                db.add_all([customer1, customer2])
-                db.commit()
-                logger.info("Added sample customers")
-                
-                # Create sample projects
-                project1 = models.Project(
-                    name="Kitchen Renovation",
-                    description="Full kitchen remodel",
-                    status=models.ProjectStatus.IN_PROGRESS,
-                    customer_id=1
-                )
-                project2 = models.Project(
-                    name="Bathroom Update",
-                    description="Master bathroom renovation",
-                    status=models.ProjectStatus.PENDING,
-                    customer_id=2
-                )
-                db.add_all([project1, project2])
-                db.commit()
-                logger.info("Added sample projects")
-                
-                # Create sample leads
-                lead1 = models.Lead(
-                    name="Bob Wilson",
-                    email="bob@example.com",
-                    phone="555-0103",
-                    address="789 Pine Rd",
-                    source=models.LeadSource.WEBSITE,
-                    status=models.LeadStatus.NEW,
-                    notes="Interested in kitchen remodel"
-                )
-                db.add(lead1)
-                db.commit()
-                logger.info("Added sample lead")
-                
-                logger.info("Sample data initialized successfully!")
-            except Exception as e:
-                logger.error(f"Error adding sample data: {str(e)}")
-                db.rollback()
-                raise
-        else:
-            logger.info("Database already contains data, skipping initialization")
-    except Exception as e:
-        logger.error(f"Database initialization error: {str(e)}")
+            # Create sample projects
+            project1 = models.Project(
+                name="Kitchen Renovation",
+                description="Full kitchen remodel",
+                status=models.ProjectStatus.IN_PROGRESS,
+                customer_id=customer1.id
+            )
+            project2 = models.Project(
+                name="Bathroom Update",
+                description="Master bathroom renovation",
+                status=models.ProjectStatus.PENDING,
+                customer_id=customer2.id
+            )
+            db.add_all([project1, project2])
+            db.commit()
+            logger.info("Added sample projects")
+            
+            # Create sample leads
+            lead1 = models.Lead(
+                name="Bob Wilson",
+                email="bob@example.com",
+                phone="555-0103",
+                address="789 Pine Rd",
+                source=models.LeadSource.WEBSITE,
+                status=models.LeadStatus.NEW,
+                notes="Interested in kitchen remodel"
+            )
+            db.add(lead1)
+            db.commit()
+            logger.info("Added sample lead")
+            
+        except Exception as sample_data_error:
+            logger.error(f"Error adding sample data: {str(sample_data_error)}")
+            db.rollback()
+            raise
+        
+    except Exception as init_error:
+        logger.error(f"Database initialization error: {str(init_error)}")
         logger.error(traceback.format_exc())
         raise
 
