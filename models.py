@@ -2,13 +2,22 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, F
 from sqlalchemy.orm import relationship
 from database import Base
 import datetime
+import enum
 
 class ProjectStatus(enum.Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    ON_HOLD = "on_hold"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+class LeadStatus(enum.Enum):
+    NEW = "NEW"
+    CONTACTED = "CONTACTED"
+    QUALIFIED = "QUALIFIED"
+    PROPOSAL = "PROPOSAL"
+    NEGOTIATION = "NEGOTIATION"
+    WON = "WON"
+    LOST = "LOST"
 
 class Customer(Base):
     __tablename__ = "customers"
