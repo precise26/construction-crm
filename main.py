@@ -30,8 +30,78 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Create database tables
-models.Base.metadata.create_all(bind=engine)
-advanced_models.Base.metadata.create_all(bind=engine)
+def initialize_db(db: Session):
+    try:
+        # Create all tables
+        logger.info("Creating database tables...")
+        models.Base.metadata.create_all(bind=engine)
+        advanced_models.Base.metadata.create_all(bind=engine)
+        
+        # Check if tables are empty
+        logger.info("Checking if database is empty...")
+        if not db.query(models.Customer).first():
+            logger.info("Database is empty. Initializing sample data...")
+            
+            try:
+                # Create sample customers
+                customer1 = models.Customer(
+                    name="John Doe",
+                    email="john@example.com",
+                    phone="555-0101",
+                    address="123 Main St"
+                )
+                customer2 = models.Customer(
+                    name="Jane Smith",
+                    email="jane@example.com",
+                    phone="555-0102",
+                    address="456 Oak Ave"
+                )
+                db.add_all([customer1, customer2])
+                db.commit()
+                logger.info("Added sample customers")
+                
+                # Create sample projects
+                project1 = models.Project(
+                    name="Kitchen Renovation",
+                    description="Full kitchen remodel",
+                    status="IN_PROGRESS",
+                    customer_id=1
+                )
+                project2 = models.Project(
+                    name="Bathroom Update",
+                    description="Master bathroom renovation",
+                    status="PLANNED",
+                    customer_id=2
+                )
+                db.add_all([project1, project2])
+                db.commit()
+                logger.info("Added sample projects")
+                
+                # Create sample leads
+                lead1 = advanced_models.Lead(
+                    name="Bob Wilson",
+                    email="bob@example.com",
+                    phone="555-0103",
+                    address="789 Pine Rd",
+                    source="WEBSITE",
+                    status="NEW",
+                    notes="Interested in kitchen remodel"
+                )
+                db.add(lead1)
+                db.commit()
+                logger.info("Added sample lead")
+                
+                logger.info("Sample data initialized successfully!")
+            except Exception as e:
+                logger.error(f"Error adding sample data: {str(e)}")
+                db.rollback()
+                raise
+        else:
+            logger.info("Database already contains data, skipping initialization")
+    except Exception as e:
+        logger.error(f"Database initialization error: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise
 
 app = FastAPI(title="Construction CRM")
 
@@ -76,61 +146,6 @@ class CORSStaticFiles(StaticFiles):
             return response
         await super().__call__(scope, receive, send)
 
-def initialize_db(db: Session):
-    # Check if tables are empty
-    inspector = inspect(engine)
-    
-    # Initialize sample data only if customers table is empty
-    if not db.query(models.Customer).first():
-        print("Initializing sample data...")
-        
-        # Create sample customers
-        customer1 = models.Customer(
-            name="John Doe",
-            email="john@example.com",
-            phone="555-0101",
-            address="123 Main St"
-        )
-        customer2 = models.Customer(
-            name="Jane Smith",
-            email="jane@example.com",
-            phone="555-0102",
-            address="456 Oak Ave"
-        )
-        db.add_all([customer1, customer2])
-        db.commit()
-        
-        # Create sample projects
-        project1 = models.Project(
-            name="Kitchen Renovation",
-            description="Full kitchen remodel",
-            status="IN_PROGRESS",
-            customer_id=1
-        )
-        project2 = models.Project(
-            name="Bathroom Update",
-            description="Master bathroom renovation",
-            status="PLANNED",
-            customer_id=2
-        )
-        db.add_all([project1, project2])
-        db.commit()
-        
-        # Create sample leads
-        lead1 = advanced_models.Lead(
-            name="Bob Wilson",
-            email="bob@example.com",
-            phone="555-0103",
-            address="789 Pine Rd",
-            source="WEBSITE",
-            status="NEW",
-            notes="Interested in kitchen remodel"
-        )
-        db.add(lead1)
-        db.commit()
-        
-        print("Sample data initialized successfully!")
-
 @app.on_event("startup")
 async def startup_event():
     db = SessionLocal()
@@ -153,15 +168,17 @@ async def home(request: Request):
 @app.post("/customers/", response_model=schemas.Customer)
 def create_customer(customer: schemas.CustomerCreate, db: Session = Depends(get_db)):
     try:
-        db_customer = models.Customer(**customer.model_dump())
+        logger.info(f"Creating customer: {customer.dict()}")
+        db_customer = models.Customer(**customer.dict())
         db.add(db_customer)
         db.commit()
         db.refresh(db_customer)
+        logger.info(f"Customer created successfully: {db_customer.id}")
         return db_customer
     except Exception as e:
+        logger.error(f"Error creating customer: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        print(f"Error creating customer: {str(e)}")
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/customers/", response_model=List[schemas.Customer])
@@ -170,8 +187,8 @@ def list_customers(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
         customers = db.query(models.Customer).offset(skip).limit(limit).all()
         return customers
     except Exception as e:
-        print(f"Error listing customers: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error listing customers: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/customers/{customer_id}", response_model=schemas.CustomerWithProjects)
@@ -186,8 +203,8 @@ def get_customer(customer_id: int, db: Session = Depends(get_db)):
         
         return customer
     except Exception as e:
-        print(f"Error getting customer: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error getting customer: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/customers/{customer_id}")
@@ -238,8 +255,9 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
         db.commit()
         return {"message": f"Customer {customer_id} and all related records deleted successfully"}
     except Exception as e:
+        logger.error(f"Error deleting customer: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 # Project endpoints
@@ -252,7 +270,7 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
             raise HTTPException(status_code=404, detail="Customer not found")
         
         # Convert the project data to dict
-        project_data = project.model_dump()
+        project_data = project.dict()
         
         db_project = models.Project(**project_data)
         db.add(db_project)
@@ -260,9 +278,9 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
         db.refresh(db_project)
         return db_project
     except Exception as e:
+        logger.error(f"Error creating project: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        print(f"Error creating project: {str(e)}")
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/projects/", response_model=List[schemas.Project])
@@ -273,8 +291,8 @@ def list_projects(skip: int = 0, limit: int = 10, db: Session = Depends(get_db))
         ).offset(skip).limit(limit).all()
         return projects
     except Exception as e:
-        print(f"Error listing projects: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error listing projects: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/projects/{project_id}", response_model=schemas.Project)
@@ -289,8 +307,8 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         
         return project
     except Exception as e:
-        print(f"Error getting project: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error getting project: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/projects/{project_id}")
@@ -310,23 +328,23 @@ def get_customer_projects(customer_id: int, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Customer not found")
         return customer.projects
     except Exception as e:
-        print(f"Error getting customer projects: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error getting customer projects: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 # Vendor Endpoints
 @app.post("/vendors/", response_model=schemas.Vendor)
 def create_vendor(vendor: schemas.VendorCreate, db: Session = Depends(get_db)):
     try:
-        db_vendor = advanced_models.Vendor(**vendor.model_dump())
+        db_vendor = advanced_models.Vendor(**vendor.dict())
         db.add(db_vendor)
         db.commit()
         db.refresh(db_vendor)
         return db_vendor
     except Exception as e:
+        logger.error(f"Error creating vendor: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        print(f"Error creating vendor: {str(e)}")
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/vendors/", response_model=List[schemas.Vendor])
@@ -335,8 +353,8 @@ def list_vendors(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
         vendors = db.query(advanced_models.Vendor).offset(skip).limit(limit).all()
         return vendors
     except Exception as e:
-        print(f"Error listing vendors: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error listing vendors: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/vendors/{vendor_id}", response_model=schemas.Vendor)
@@ -347,8 +365,8 @@ def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Vendor not found")
         return vendor
     except Exception as e:
-        print(f"Error getting vendor: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error getting vendor: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/vendors/{vendor_id}")
@@ -364,15 +382,15 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
 @app.post("/interactions/", response_model=schemas.Interaction)
 def create_interaction(interaction: schemas.InteractionCreate, db: Session = Depends(get_db)):
     try:
-        db_interaction = advanced_models.Interaction(**interaction.model_dump())
+        db_interaction = advanced_models.Interaction(**interaction.dict())
         db.add(db_interaction)
         db.commit()
         db.refresh(db_interaction)
         return db_interaction
     except Exception as e:
+        logger.error(f"Error creating interaction: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        print(f"Error creating interaction: {str(e)}")
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/interactions/customer/{customer_id}", response_model=List[schemas.Interaction])
@@ -383,23 +401,23 @@ def get_customer_interactions(customer_id: int, db: Session = Depends(get_db)):
         ).all()
         return interactions
     except Exception as e:
-        print(f"Error getting customer interactions: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error getting customer interactions: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 # Notification Endpoints
 @app.post("/notifications/", response_model=schemas.Notification)
 def create_notification(notification: schemas.NotificationCreate, db: Session = Depends(get_db)):
     try:
-        db_notification = advanced_models.Notification(**notification.model_dump())
+        db_notification = advanced_models.Notification(**notification.dict())
         db.add(db_notification)
         db.commit()
         db.refresh(db_notification)
         return db_notification
     except Exception as e:
+        logger.error(f"Error creating notification: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        print(f"Error creating notification: {str(e)}")
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/notifications/", response_model=List[schemas.Notification])
@@ -411,8 +429,8 @@ def list_notifications(skip: int = 0, limit: int = 10, unread_only: bool = False
         notifications = query.offset(skip).limit(limit).all()
         return notifications
     except Exception as e:
-        print(f"Error listing notifications: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error listing notifications: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 # Lead Endpoints
@@ -420,9 +438,9 @@ def list_notifications(skip: int = 0, limit: int = 10, unread_only: bool = False
 def create_lead(lead: schemas.LeadCreate, db: Session = Depends(get_db)):
     try:
         # Log the incoming data
-        logger.info("Incoming lead data: %s", json.dumps(lead.model_dump(), default=str))
+        logger.info("Incoming lead data: %s", json.dumps(lead.dict(), default=str))
         
-        lead_data = lead.model_dump()
+        lead_data = lead.dict()
         
         # Status is already an enum from the schema validation
         db_lead = advanced_models.Lead(**lead_data)
@@ -432,9 +450,9 @@ def create_lead(lead: schemas.LeadCreate, db: Session = Depends(get_db)):
         logger.info("Lead created successfully with ID: %s", db_lead.id)
         return db_lead
     except Exception as e:
-        db.rollback()
         logger.error("Error creating lead: %s", str(e))
         logger.error("Full traceback: %s", traceback.format_exc())
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/leads/", response_model=List[schemas.Lead])
@@ -446,8 +464,8 @@ def list_leads(status: str = None, skip: int = 0, limit: int = 10, db: Session =
         leads = query.offset(skip).limit(limit).all()
         return leads
     except Exception as e:
-        print(f"Error listing leads: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error listing leads: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/leads/{lead_id}", response_model=schemas.Lead)
@@ -458,7 +476,8 @@ def get_lead(lead_id: int, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Lead not found")
         return db_lead
     except Exception as e:
-        print(traceback.format_exc())
+        logger.error(f"Error getting lead: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/leads/{lead_id}")
@@ -472,6 +491,8 @@ async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
         db.commit()
         return {"message": "Lead deleted successfully"}
     except Exception as e:
+        logger.error(f"Error deleting lead: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -498,8 +519,9 @@ def update_lead_status(lead_id: int, lead_update: LeadUpdate, db: Session = Depe
         db.commit()
         return {"message": "Lead status updated successfully"}
     except Exception as e:
+        logger.error(f"Error updating lead status: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/leads/{lead_id}/convert", response_model=schemas.Customer)
@@ -529,6 +551,8 @@ async def convert_lead_to_customer(lead_id: int, db: Session = Depends(get_db)):
         db.refresh(customer)
         return customer
     except Exception as e:
+        logger.error(f"Error converting lead to customer: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -604,8 +628,9 @@ def clear_database(db: Session = Depends(get_db)):
         db.commit()
         return {"message": "Database cleared successfully"}
     except Exception as e:
+        logger.error(f"Error clearing database: {str(e)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/dashboard/stats")
