@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Float, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Float, Date, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
-import enum
 from database import Base
+import datetime
 
 class ProjectStatus(enum.Enum):
     PENDING = "pending"
@@ -15,29 +14,91 @@ class Customer(Base):
     __tablename__ = "customers"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    email = Column(String, unique=True, index=True)
-    phone = Column(String)
-    address = Column(String, nullable=True)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False, index=True)
+    phone = Column(String, nullable=False)
+    address = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
 
-    # Relationship with projects
-    projects = relationship("Project", back_populates="customer")
+    # Relationships
+    projects = relationship("Project", back_populates="customer", cascade="all, delete-orphan")
+    interactions = relationship("Interaction", back_populates="customer", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="customer", cascade="all, delete-orphan")
 
 class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    description = Column(String, nullable=True)
-    status = Column(String, default=ProjectStatus.PENDING.value)  # Store as string
-    start_date = Column(Date, nullable=True)  # Changed to Date
-    end_date = Column(Date, nullable=True)    # Changed to Date
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    status = Column(String, nullable=False)
+    start_date = Column(Date, nullable=True)  
+    end_date = Column(Date, nullable=True)    
     budget = Column(Float, nullable=True)
-    revenue = Column(Float, nullable=True, default=0.0)  # Added revenue field
-    customer_id = Column(Integer, ForeignKey("customers.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    revenue = Column(Float, nullable=True, default=0.0)  
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
 
-    # Relationship with customer
+    # Relationships
     customer = relationship("Customer", back_populates="projects")
+    interactions = relationship("Interaction", back_populates="project", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="project", cascade="all, delete-orphan")
+
+class Vendor(Base):
+    __tablename__ = "vendors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    contact_name = Column(String)
+    email = Column(String, unique=True, nullable=False, index=True)
+    phone = Column(String, nullable=False)
+    services = Column(Text)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
+
+class Interaction(Base):
+    __tablename__ = "interactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    interaction_type = Column(String, nullable=False)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
+
+    # Relationships
+    customer = relationship("Customer", back_populates="interactions")
+    project = relationship("Project", back_populates="interactions")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    notification_type = Column(String, nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"))
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    read = Column(Boolean, default=False, nullable=False)
+
+    # Relationships
+    customer = relationship("Customer", back_populates="notifications")
+    project = relationship("Project", back_populates="notifications")
+
+class Lead(Base):
+    __tablename__ = "leads"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False, index=True)
+    phone = Column(String, nullable=False)
+    address = Column(String)
+    source = Column(String, nullable=False)
+    status = Column(String, nullable=False)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)

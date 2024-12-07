@@ -2,32 +2,50 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
-from urllib.parse import urlparse
+import logging
 
-# Use environment variable for database URL if available (for production)
+logger = logging.getLogger(__name__)
+
+# Get the DATABASE_URL from environment variable, with a default SQLite URL
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./construction_crm.db")
 
-# Handle special case for Render's PostgreSQL URL format
-if DATABASE_URL.startswith("postgres://"):
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    # Render provides PostgreSQL URLs starting with postgres://, but SQLAlchemy needs postgresql://
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Configure SQLAlchemy based on database type
-if DATABASE_URL.startswith("sqlite"):
-    # SQLite configuration
-    DATABASE_URL = f"sqlite:///{os.path.abspath('construction_crm.db')}"
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False, "timeout": 30}
-    )
-else:
-    # PostgreSQL configuration
+logger.info(f"Using database URL type: {'PostgreSQL' if DATABASE_URL and 'postgresql' in DATABASE_URL else 'SQLite'}")
+
+if not DATABASE_URL:
+    # Default to SQLite for local development
+    DATABASE_URL = "sqlite:///./construction_crm.db"
+    logger.info("No DATABASE_URL found, using SQLite database")
+
+# Create SQLAlchemy engine with proper arguments based on database type
+if DATABASE_URL.startswith("postgresql://"):
     engine = create_engine(
         DATABASE_URL,
         pool_size=5,
         max_overflow=10,
         pool_timeout=30,
-        pool_recycle=1800
+        pool_pre_ping=True,
+        pool_recycle=300
     )
+    logger.info("Created PostgreSQL engine with connection pooling")
+else:
+    # SQLite engine doesn't support the same connection pool parameters
+    engine = create_engine(
+        DATABASE_URL, 
+        connect_args={"check_same_thread": False}
+    )
+    logger.info("Created SQLite engine")
+
+try:
+    # Test the database connection
+    with engine.connect() as conn:
+        logger.info("Successfully connected to database")
+except Exception as e:
+    logger.error(f"Failed to connect to database: {str(e)}")
+    raise
 
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
