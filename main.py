@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import models, schemas, advanced_models
-from database import engine, get_db
+from database import engine, get_db, SessionLocal
 import traceback
 from datetime import datetime, timedelta
 from pydantic import BaseModel
@@ -17,6 +17,7 @@ from sqlalchemy import func
 import os
 from dotenv import load_dotenv
 import uvicorn
+from sqlalchemy import inspect
 
 # Load environment variables from .env file
 load_dotenv()
@@ -74,6 +75,69 @@ class CORSStaticFiles(StaticFiles):
                 })
             return response
         await super().__call__(scope, receive, send)
+
+def initialize_db(db: Session):
+    # Check if tables are empty
+    inspector = inspect(engine)
+    
+    # Initialize sample data only if customers table is empty
+    if not db.query(models.Customer).first():
+        print("Initializing sample data...")
+        
+        # Create sample customers
+        customer1 = models.Customer(
+            name="John Doe",
+            email="john@example.com",
+            phone="555-0101",
+            address="123 Main St"
+        )
+        customer2 = models.Customer(
+            name="Jane Smith",
+            email="jane@example.com",
+            phone="555-0102",
+            address="456 Oak Ave"
+        )
+        db.add_all([customer1, customer2])
+        db.commit()
+        
+        # Create sample projects
+        project1 = models.Project(
+            name="Kitchen Renovation",
+            description="Full kitchen remodel",
+            status="IN_PROGRESS",
+            customer_id=1
+        )
+        project2 = models.Project(
+            name="Bathroom Update",
+            description="Master bathroom renovation",
+            status="PLANNED",
+            customer_id=2
+        )
+        db.add_all([project1, project2])
+        db.commit()
+        
+        # Create sample leads
+        lead1 = advanced_models.Lead(
+            name="Bob Wilson",
+            email="bob@example.com",
+            phone="555-0103",
+            address="789 Pine Rd",
+            source="WEBSITE",
+            status="NEW",
+            notes="Interested in kitchen remodel"
+        )
+        db.add(lead1)
+        db.commit()
+        
+        print("Sample data initialized successfully!")
+
+@app.on_event("startup")
+async def startup_event():
+    db = SessionLocal()
+    try:
+        initialize_db(db)
+    finally:
+        db.close()
 
 # Mount static files with CORS support
 app.mount("/static", CORSStaticFiles(directory="static"), name="static")
