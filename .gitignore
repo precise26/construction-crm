@@ -1,0 +1,53 @@
+# Environment files
+.env
+*.env
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Database files
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# Sensitive or local configuration
+config.ini
+local_settings.py
+
+# Backup files
+*.bak
+*.swp
+*~
+
+# Dependency directories
+node_modules/
+
+# Build and distribution directories
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# OS generated files
+.DS_Store
+Thumbs.db

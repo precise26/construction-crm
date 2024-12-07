@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: construction-crm
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.8.0
+      - key: DATABASE_URL
+        value: sqlite:///./sql_app.db

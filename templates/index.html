@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Construction CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="navbar-brand">Construction CRM</a>
+            <div class="nav-links">
+                <a href="#dashboard" class="nav-link active">Dashboard</a>
+                <a href="#customers" class="nav-link">Customers</a>
+                <a href="#projects" class="nav-link">Projects</a>
+                <a href="#vendors" class="nav-link">Vendors</a>
+                <a href="#leads" class="nav-link">Leads</a>
+                <a href="#interactions" class="nav-link">Interactions</a>
+                <a href="#notifications" class="nav-link">Notifications</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="alerts"></div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section">
+            <div class="row">
+                <!-- Lead Statistics Card -->
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Leads</h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h2 id="totalLeadsCount">0</h2>
+                                    <p class="text-muted mb-0">Total Leads</p>
+                                </div>
+                                <div class="text-success">
+                                    <h4 id="convertedLeadsCount">0</h4>
+                                    <p class="text-muted mb-0">Converted</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Statistics Card -->
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Customers</h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h2 id="totalCustomersCount">0</h2>
+                                    <p class="text-muted mb-0">Total Customers</p>
+                                </div>
+                                <div class="text-primary">
+                                    <h4 id="activeCustomersCount">0</h4>
+                                    <p class="text-muted mb-0">Active</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Statistics Card -->
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Projects</h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h2 id="totalProjectsCount">0</h2>
+                                    <p class="text-muted mb-0">Total Projects</p>
+                                </div>
+                                <div class="text-warning">
+                                    <h4 id="activeProjectsCount">0</h4>
+                                    <p class="text-muted mb-0">In Progress</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customers Section -->
+        <div id="customers" class="section">
+            <div class="card">
+                <h2>Add New Customer</h2>
+                <form id="customerForm">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone</label>
+                        <input type="tel" id="phone" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <textarea id="address" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Customer</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Customers List</h2>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersList">
+                            <!-- Customer data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Section -->
+        <div id="projects" class="section" style="display: none;">
+            <div class="card">
+                <h2>Create New Project</h2>
+                <form id="projectForm">
+                    <div class="form-group">
+                        <label for="projectName">Project Name</label>
+                        <input type="text" id="projectName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectCustomer">Customer</label>
+                        <select id="projectCustomer" class="form-control" required>
+                            <option value="">Select Customer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectDescription">Description</label>
+                        <textarea id="projectDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="startDate">Start Date</label>
+                            <input type="date" id="startDate" class="form-control">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="endDate">End Date</label>
+                            <input type="date" id="endDate" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="budget">Budget</label>
+                        <input type="number" id="budget" class="form-control" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" class="form-control">
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="on_hold">On Hold</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Project</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Projects List</h2>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Project Name</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Budget</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectsList">
+                            <!-- Project data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendors Section -->
+        <div id="vendors" class="section" style="display: none;">
+            <div class="card">
+                <h2>Add New Vendor</h2>
+                <form id="vendorForm">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="vendorName">Vendor Name</label>
+                            <input type="text" id="vendorName" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="vendorContactName">Contact Name</label>
+                            <input type="text" id="vendorContactName" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="vendorEmail">Email</label>
+                            <input type="email" id="vendorEmail" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="vendorPhone">Phone</label>
+                            <input type="tel" id="vendorPhone" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="vendorAddress">Address</label>
+                        <textarea id="vendorAddress" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="vendorSpecialty">Specialty</label>
+                        <input type="text" id="vendorSpecialty" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Vendor</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Vendors List</h2>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Specialty</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vendorsList">
+                            <!-- Vendor data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leads Section -->
+        <div id="leads" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-md-12 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Active Leads</h5>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLeadModal">
+                                <i class="bi bi-plus"></i> Add New Lead
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table" id="leadsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Source</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leadsTableBody">
+                                        <!-- Leads will be dynamically added here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Converted Leads</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table" id="convertedLeadsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Source</th>
+                                            <th>Converted Date</th>
+                                            <th>View Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="convertedLeadsTableBody">
+                                        <!-- Converted leads will be dynamically added here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactions Section -->
+        <div id="interactions" class="section" style="display: none;">
+            <div class="card">
+                <h2>Log New Interaction</h2>
+                <form id="interactionForm">
+                    <div class="form-group">
+                        <label for="interactionCustomer">Customer</label>
+                        <select id="interactionCustomer" class="form-control" required>
+                            <option value="">Select Customer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="interactionProject">Project (Optional)</label>
+                        <select id="interactionProject" class="form-control">
+                            <option value="">Select Project</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="interactionType">Interaction Type</label>
+                        <select id="interactionType" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="phone_call">Phone Call</option>
+                            <option value="email">Email</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="text">Text</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="interactionDate">Date</label>
+                            <input type="datetime-local" id="interactionDate" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="interactionDuration">Duration (minutes)</label>
+                            <input type="number" id="interactionDuration" class="form-control" min="0" step="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="interactionDescription">Description</label>
+                        <textarea id="interactionDescription" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="interactionNotes">Additional Notes</label>
+                        <textarea id="interactionNotes" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Log Interaction</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Interaction History</h2>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Project</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interactionsList">
+                            <!-- Interactions data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Section -->
+        <div id="notifications" class="section" style="display: none;">
+            <div class="card">
+                <h2>Create Notification</h2>
+                <form id="notificationForm">
+                    <div class="form-group">
+                        <label for="notificationCustomer">Customer (Optional)</label>
+                        <select id="notificationCustomer" class="form-control">
+                            <option value="">Select Customer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="notificationProject">Project (Optional)</label>
+                        <select id="notificationProject" class="form-control">
+                            <option value="">Select Project</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="notificationType">Notification Type</label>
+                        <select id="notificationType" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="follow_up">Follow Up</option>
+                            <option value="project_milestone">Project Milestone</option>
+                            <option value="task_reminder">Task Reminder</option>
+                            <option value="lead">Lead</option>
+                            <option value="completion">Completion</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="notificationTitle">Title</label>
+                        <input type="text" id="notificationTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="notificationDescription">Description</label>
+                        <textarea id="notificationDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="notificationDueDate">Due Date</label>
+                        <input type="datetime-local" id="notificationDueDate" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Notification</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Notifications List</h2>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Customer</th>
+                                <th>Project</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notificationsList">
+                            <!-- Notifications data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lead Form Modal -->
+    <div class="modal fade" id="addLeadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Lead</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addLeadForm">
+                        <div class="mb-3">
+                            <label for="leadName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="leadName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="leadEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadPhone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="leadPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadAddress" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="leadAddress">
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadSource" class="form-label">Source</label>
+                            <select class="form-select" id="leadSource">
+                                <option value="">Select Source</option>
+                                <option value="Website">Website</option>
+                                <option value="Referral">Referral</option>
+                                <option value="Social Media">Social Media</option>
+                                <option value="Email Campaign">Email Campaign</option>
+                                <option value="Trade Show">Trade Show</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadStatus" class="form-label">Status</label>
+                            <select class="form-select" id="leadStatus" required>
+                                <option value="NEW">New</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="QUALIFIED">Qualified</option>
+                                <option value="NEGOTIATING">Negotiating</option>
+                                <option value="CONVERTED">Converted</option>
+                                <option value="CLOSED">Closed</option>
+                                <option value="LOST">Lost</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadProjectType" class="form-label">Project Type</label>
+                            <select class="form-select" id="leadProjectType">
+                                <option value="">Select Project Type</option>
+                                <option value="New Construction">New Construction</option>
+                                <option value="Renovation">Renovation</option>
+                                <option value="Addition">Addition</option>
+                                <option value="Remodeling">Remodeling</option>
+                                <option value="Repair">Repair</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="leadDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadExpectedValue" class="form-label">Expected Value ($)</label>
+                            <input type="number" class="form-control" id="leadExpectedValue" step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadNextFollowup" class="form-label">Next Follow-up Date</label>
+                            <input type="datetime-local" class="form-control" id="leadNextFollowup">
+                        </div>
+                        <div class="mb-3">
+                            <label for="leadNotes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="leadNotes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createLead()">Create Lead</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lead Detail Modal -->
+    <div class="modal fade" id="leadDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Lead Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Basic Information</h6>
+                            <p><strong>Name:</strong> <span id="leadDetailName"></span></p>
+                            <p><strong>Email:</strong> <span id="leadDetailEmail"></span></p>
+                            <p><strong>Phone:</strong> <span id="leadDetailPhone"></span></p>
+                            <p><strong>Address:</strong> <span id="leadDetailAddress"></span></p>
+                            <p><strong>Source:</strong> <span id="leadDetailSource"></span></p>
+                            <p>
+                                <strong>Status:</strong> 
+                                <span id="leadDetailStatus" class="badge"></span>
+                                <button class="btn btn-sm btn-outline-primary ms-2" onclick="showUpdateStatusModal()">
+                                    Update Status
+                                </button>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Project Details</h6>
+                            <p><strong>Project Type:</strong> <span id="leadDetailProjectType"></span></p>
+                            <p><strong>Expected Value:</strong> $<span id="leadDetailValue"></span></p>
+                            <p><strong>Created:</strong> <span id="leadDetailCreated"></span></p>
+                            <p><strong>Last Contact:</strong> <span id="leadDetailLastContact"></span></p>
+                            <p><strong>Next Follow-up:</strong> <span id="leadDetailNextFollowup"></span></p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="mb-3">Description</h6>
+                            <p id="leadDetailDescription" class="text-muted"></p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="mb-3">Notes</h6>
+                            <p id="leadDetailNotes" class="text-muted"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger me-auto" onclick="deleteLead()">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="convertToCustomerBtn" onclick="convertToCustomer()">
+                        <i class="bi bi-person-plus"></i> Convert to Customer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lead Status Update Modal -->
+    <div class="modal fade" id="updateLeadStatusModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Lead Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="leadStatusSelect" class="form-label">Status</label>
+                        <select class="form-select" id="leadStatusSelect">
+                            <option value="NEW">New</option>
+                            <option value="PENDING">Pending</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="QUALIFIED">Qualified</option>
+                            <option value="NEGOTIATING">Negotiating</option>
+                            <option value="CONVERTED">Converted</option>
+                            <option value="CLOSED">Closed</option>
+                            <option value="LOST">Lost</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadStatusNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="leadStatusNotes" rows="3" placeholder="Add notes about this status change..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadNextFollowup" class="form-label">Next Follow-up Date</label>
+                        <input type="datetime-local" class="form-control" id="leadNextFollowup">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="updateLeadStatus()">Update Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- Modal content will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
