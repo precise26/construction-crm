@@ -6,7 +6,7 @@ from starlette.types import Scope, Receive, Send
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
-import models, schemas, advanced_models
+import models, schemas
 from database import engine, get_db, SessionLocal
 import traceback
 from datetime import datetime, timedelta
@@ -35,7 +35,6 @@ def initialize_db(db: Session):
         # Create all tables
         logger.info("Creating database tables...")
         models.Base.metadata.create_all(bind=engine)
-        advanced_models.Base.metadata.create_all(bind=engine)
         
         # Check if tables are empty
         logger.info("Checking if database is empty...")
@@ -64,13 +63,13 @@ def initialize_db(db: Session):
                 project1 = models.Project(
                     name="Kitchen Renovation",
                     description="Full kitchen remodel",
-                    status="IN_PROGRESS",
+                    status=models.ProjectStatus.IN_PROGRESS,
                     customer_id=1
                 )
                 project2 = models.Project(
                     name="Bathroom Update",
                     description="Master bathroom renovation",
-                    status="PLANNED",
+                    status=models.ProjectStatus.PENDING,
                     customer_id=2
                 )
                 db.add_all([project1, project2])
@@ -78,13 +77,13 @@ def initialize_db(db: Session):
                 logger.info("Added sample projects")
                 
                 # Create sample leads
-                lead1 = advanced_models.Lead(
+                lead1 = models.Lead(
                     name="Bob Wilson",
                     email="bob@example.com",
                     phone="555-0103",
                     address="789 Pine Rd",
-                    source="WEBSITE",
-                    status="NEW",
+                    source=models.LeadSource.WEBSITE,
+                    status=models.LeadStatus.NEW,
                     notes="Interested in kitchen remodel"
                 )
                 db.add(lead1)
@@ -223,24 +222,24 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
         
         # 1. Delete vendor projects first (they reference projects)
         if project_ids:
-            db.query(advanced_models.VendorProject).filter(
-                advanced_models.VendorProject.project_id.in_(project_ids)
+            db.query(models.VendorProject).filter(
+                models.VendorProject.project_id.in_(project_ids)
             ).delete(synchronize_session=False)
 
         # 2. Delete notifications (they reference both customers and projects)
-        db.query(advanced_models.Notification).filter(
-            (advanced_models.Notification.customer_id == customer_id) |
-            (advanced_models.Notification.project_id.in_(project_ids) if project_ids else False)
+        db.query(models.Notification).filter(
+            (models.Notification.customer_id == customer_id) |
+            (models.Notification.project_id.in_(project_ids) if project_ids else False)
         ).delete(synchronize_session=False)
 
         # 3. Delete leads that reference this customer
-        db.query(advanced_models.Lead).filter(
-            advanced_models.Lead.converted_to_customer_id == customer_id
+        db.query(models.Lead).filter(
+            models.Lead.converted_to_customer_id == customer_id
         ).delete(synchronize_session=False)
 
         # 4. Delete interactions
-        db.query(advanced_models.Interaction).filter(
-            advanced_models.Interaction.customer_id == customer_id
+        db.query(models.Interaction).filter(
+            models.Interaction.customer_id == customer_id
         ).delete(synchronize_session=False)
 
         # 5. Delete projects
@@ -336,7 +335,7 @@ def get_customer_projects(customer_id: int, db: Session = Depends(get_db)):
 @app.post("/vendors/", response_model=schemas.Vendor)
 def create_vendor(vendor: schemas.VendorCreate, db: Session = Depends(get_db)):
     try:
-        db_vendor = advanced_models.Vendor(**vendor.dict())
+        db_vendor = models.Vendor(**vendor.dict())
         db.add(db_vendor)
         db.commit()
         db.refresh(db_vendor)
@@ -350,7 +349,7 @@ def create_vendor(vendor: schemas.VendorCreate, db: Session = Depends(get_db)):
 @app.get("/vendors/", response_model=List[schemas.Vendor])
 def list_vendors(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     try:
-        vendors = db.query(advanced_models.Vendor).offset(skip).limit(limit).all()
+        vendors = db.query(models.Vendor).offset(skip).limit(limit).all()
         return vendors
     except Exception as e:
         logger.error(f"Error listing vendors: {str(e)}")
@@ -360,7 +359,7 @@ def list_vendors(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
 @app.get("/vendors/{vendor_id}", response_model=schemas.Vendor)
 def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
     try:
-        vendor = db.query(advanced_models.Vendor).filter(advanced_models.Vendor.id == vendor_id).first()
+        vendor = db.query(models.Vendor).filter(models.Vendor.id == vendor_id).first()
         if vendor is None:
             raise HTTPException(status_code=404, detail="Vendor not found")
         return vendor
@@ -371,7 +370,7 @@ def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/vendors/{vendor_id}")
 def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
-    db_vendor = db.query(advanced_models.Vendor).filter(advanced_models.Vendor.id == vendor_id).first()
+    db_vendor = db.query(models.Vendor).filter(models.Vendor.id == vendor_id).first()
     if not db_vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
     db.delete(db_vendor)
@@ -382,7 +381,7 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
 @app.post("/interactions/", response_model=schemas.Interaction)
 def create_interaction(interaction: schemas.InteractionCreate, db: Session = Depends(get_db)):
     try:
-        db_interaction = advanced_models.Interaction(**interaction.dict())
+        db_interaction = models.Interaction(**interaction.dict())
         db.add(db_interaction)
         db.commit()
         db.refresh(db_interaction)
@@ -396,8 +395,8 @@ def create_interaction(interaction: schemas.InteractionCreate, db: Session = Dep
 @app.get("/interactions/customer/{customer_id}", response_model=List[schemas.Interaction])
 def get_customer_interactions(customer_id: int, db: Session = Depends(get_db)):
     try:
-        interactions = db.query(advanced_models.Interaction).filter(
-            advanced_models.Interaction.customer_id == customer_id
+        interactions = db.query(models.Interaction).filter(
+            models.Interaction.customer_id == customer_id
         ).all()
         return interactions
     except Exception as e:
@@ -409,7 +408,7 @@ def get_customer_interactions(customer_id: int, db: Session = Depends(get_db)):
 @app.post("/notifications/", response_model=schemas.Notification)
 def create_notification(notification: schemas.NotificationCreate, db: Session = Depends(get_db)):
     try:
-        db_notification = advanced_models.Notification(**notification.dict())
+        db_notification = models.Notification(**notification.dict())
         db.add(db_notification)
         db.commit()
         db.refresh(db_notification)
@@ -423,9 +422,9 @@ def create_notification(notification: schemas.NotificationCreate, db: Session = 
 @app.get("/notifications/", response_model=List[schemas.Notification])
 def list_notifications(skip: int = 0, limit: int = 10, unread_only: bool = False, db: Session = Depends(get_db)):
     try:
-        query = db.query(advanced_models.Notification)
+        query = db.query(models.Notification)
         if unread_only:
-            query = query.filter(advanced_models.Notification.is_read == False)
+            query = query.filter(models.Notification.is_read == False)
         notifications = query.offset(skip).limit(limit).all()
         return notifications
     except Exception as e:
@@ -443,7 +442,7 @@ def create_lead(lead: schemas.LeadCreate, db: Session = Depends(get_db)):
         lead_data = lead.dict()
         
         # Status is already an enum from the schema validation
-        db_lead = advanced_models.Lead(**lead_data)
+        db_lead = models.Lead(**lead_data)
         db.add(db_lead)
         db.commit()
         db.refresh(db_lead)
@@ -458,9 +457,9 @@ def create_lead(lead: schemas.LeadCreate, db: Session = Depends(get_db)):
 @app.get("/leads/", response_model=List[schemas.Lead])
 def list_leads(status: str = None, skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     try:
-        query = db.query(advanced_models.Lead)
+        query = db.query(models.Lead)
         if status:
-            query = query.filter(advanced_models.Lead.status == status)
+            query = query.filter(models.Lead.status == status)
         leads = query.offset(skip).limit(limit).all()
         return leads
     except Exception as e:
@@ -471,7 +470,7 @@ def list_leads(status: str = None, skip: int = 0, limit: int = 10, db: Session =
 @app.get("/leads/{lead_id}", response_model=schemas.Lead)
 def get_lead(lead_id: int, db: Session = Depends(get_db)):
     try:
-        db_lead = db.query(advanced_models.Lead).filter(advanced_models.Lead.id == lead_id).first()
+        db_lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
         if db_lead is None:
             raise HTTPException(status_code=404, detail="Lead not found")
         return db_lead
@@ -482,7 +481,7 @@ def get_lead(lead_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/leads/{lead_id}")
 async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.query(advanced_models.Lead).filter(advanced_models.Lead.id == lead_id).first()
+    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     
@@ -504,7 +503,7 @@ class LeadUpdate(BaseModel):
 @app.put("/leads/{lead_id}/status")
 def update_lead_status(lead_id: int, lead_update: LeadUpdate, db: Session = Depends(get_db)):
     try:
-        lead = db.query(advanced_models.Lead).filter(advanced_models.Lead.id == lead_id).first()
+        lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
 
@@ -527,7 +526,7 @@ def update_lead_status(lead_id: int, lead_update: LeadUpdate, db: Session = Depe
 @app.post("/leads/{lead_id}/convert", response_model=schemas.Customer)
 async def convert_lead_to_customer(lead_id: int, db: Session = Depends(get_db)):
     # Get the lead
-    lead = db.query(advanced_models.Lead).filter(advanced_models.Lead.id == lead_id).first()
+    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
@@ -542,7 +541,7 @@ async def convert_lead_to_customer(lead_id: int, db: Session = Depends(get_db)):
     db.add(customer)
     
     # Update lead status and conversion details
-    lead.status = advanced_models.LeadStatus.CONVERTED
+    lead.status = models.LeadStatus.CONVERTED
     lead.converted_at = datetime.utcnow()
     lead.converted_to_customer_id = customer.id
     
@@ -573,7 +572,7 @@ async def handle_website_form(
 ):
     try:
         # Create a new lead
-        lead = advanced_models.Lead(
+        lead = models.Lead(
             name=form_data.name,
             email=form_data.email,
             phone=form_data.phone,
@@ -581,7 +580,7 @@ async def handle_website_form(
             description=form_data.message,
             project_type=form_data.project_type,
             source=form_data.source or 'Website Contact Form',
-            status=advanced_models.LeadStatus.NEW,
+            status=models.LeadStatus.NEW,
             created_at=datetime.utcnow()
         )
         
@@ -591,8 +590,8 @@ async def handle_website_form(
         db.refresh(lead)
         
         # Create a notification for the new lead
-        notification = advanced_models.Notification(
-            type=advanced_models.NotificationType.LEAD,
+        notification = models.Notification(
+            type=models.NotificationType.LEAD,
             title=f"New Lead from {form_data.source}: {form_data.name}",
             description=f"New contact form submission from {form_data.name} ({form_data.email})",
             due_date=datetime.utcnow() + timedelta(days=1)
@@ -617,11 +616,11 @@ async def handle_website_form(
 def clear_database(db: Session = Depends(get_db)):
     try:
         # Clear all tables in the correct order to avoid foreign key constraints
-        db.query(advanced_models.Interaction).delete()
-        db.query(advanced_models.Notification).delete()
-        db.query(advanced_models.VendorProject).delete()
-        db.query(advanced_models.Vendor).delete()
-        db.query(advanced_models.Lead).delete()
+        db.query(models.Interaction).delete()
+        db.query(models.Notification).delete()
+        db.query(models.VendorProject).delete()
+        db.query(models.Vendor).delete()
+        db.query(models.Lead).delete()
         db.query(models.Project).delete()
         db.query(models.Customer).delete()
         
@@ -640,9 +639,9 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         
         # Get lead statistics
         logger.info("Fetching lead statistics")
-        total_leads = db.query(advanced_models.Lead).count()
+        total_leads = db.query(models.Lead).count()
         logger.info(f"Total leads: {total_leads}")
-        converted_leads = db.query(advanced_models.Lead).filter(advanced_models.Lead.status == "CONVERTED").count()
+        converted_leads = db.query(models.Lead).filter(models.Lead.status == models.LeadStatus.CONVERTED).count()
         logger.info(f"Converted leads: {converted_leads}")
 
         # Get customer statistics
@@ -657,7 +656,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         total_projects = db.query(models.Project).count()
         logger.info(f"Total projects: {total_projects}")
         active_projects = db.query(models.Project).filter(
-            models.Project.status == "in_progress"  
+            models.Project.status == models.ProjectStatus.IN_PROGRESS  
         ).count()
         logger.info(f"Active projects: {active_projects}")
 

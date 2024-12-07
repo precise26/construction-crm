@@ -1,8 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime, date
-from typing import Optional, List
-from models import ProjectStatus
-from advanced_models import LeadStatus
+from typing import List, Optional
+from models import ProjectStatus, LeadStatus, LeadSource
 
 class CustomerBase(BaseModel):
     name: str
@@ -34,7 +33,7 @@ class CustomerWithProjects(Customer):
 class ProjectBase(BaseModel):
     name: str
     description: str
-    status: str
+    status: ProjectStatus
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     budget: Optional[float] = None
@@ -133,7 +132,7 @@ class LeadBase(BaseModel):
     email: str
     phone: str
     address: str
-    source: str
+    source: LeadSource
     project_type: str
     description: str
     status: LeadStatus = LeadStatus.NEW

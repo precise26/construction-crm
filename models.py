@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Float, Date, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Float, Date, Text, Enum
 from sqlalchemy.orm import relationship
 from database import Base
 import datetime
@@ -18,6 +18,13 @@ class LeadStatus(enum.Enum):
     NEGOTIATION = "NEGOTIATION"
     WON = "WON"
     LOST = "LOST"
+
+class LeadSource(enum.Enum):
+    WEBSITE = "WEBSITE"
+    REFERRAL = "REFERRAL"
+    SOCIAL_MEDIA = "SOCIAL_MEDIA"
+    ADVERTISEMENT = "ADVERTISEMENT"
+    OTHER = "OTHER"
 
 class Customer(Base):
     __tablename__ = "customers"
@@ -41,14 +48,14 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(Text)
-    status = Column(String, nullable=False)
-    start_date = Column(Date, nullable=True)  
-    end_date = Column(Date, nullable=True)    
-    budget = Column(Float, nullable=True)
-    revenue = Column(Float, nullable=True, default=0.0)  
+    status = Column(Enum(ProjectStatus), nullable=False)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    budget = Column(Float)
+    revenue = Column(Float, default=0.0)
 
     # Relationships
     customer = relationship("Customer", back_populates="projects")
@@ -106,8 +113,8 @@ class Lead(Base):
     email = Column(String, nullable=False, index=True)
     phone = Column(String, nullable=False)
     address = Column(String)
-    source = Column(String, nullable=False)
-    status = Column(String, nullable=False)
+    source = Column(Enum(LeadSource), nullable=False)
+    status = Column(Enum(LeadStatus), nullable=False, default=LeadStatus.NEW)
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
