@@ -1,7 +1,12 @@
 // Base URL for API calls
 const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3000'
+    ? 'https://localhost:3000'
     : 'https://construction-crm-mkmz.onrender.com';
+
+// Function to build full API URL
+function getApiUrl(endpoint) {
+    return `${API_BASE_URL}${endpoint}`;
+}
 
 // Global functions
 function showAlert(message, type) {
@@ -70,7 +75,7 @@ function updateLeadStatus() {
     const notes = document.getElementById('leadStatusNotes').value;
     const nextFollowup = document.getElementById('leadNextFollowup').value;
 
-    fetch(`${API_BASE_URL}/leads/${currentLeadId}/status`, {
+    fetch(getApiUrl(`/leads/${currentLeadId}/status`), {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -109,7 +114,7 @@ function updateLeadStatus() {
 
 async function convertToCustomer(leadId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/leads/${leadId}/convert`, {
+        const response = await fetch(getApiUrl(`/leads/${leadId}/convert`), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -137,7 +142,7 @@ async function convertToCustomer(leadId) {
 
 window.viewCustomer = async function(id) {
     try {
-        const response = await fetch(`${API_BASE_URL}/customers/${id}`);
+        const response = await fetch(getApiUrl(`/customers/${id}`));
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -182,7 +187,7 @@ window.viewCustomer = async function(id) {
 
 window.viewProject = async function(id) {
     try {
-        const response = await fetch(`${API_BASE_URL}/projects/${id}`);
+        const response = await fetch(getApiUrl(`/projects/${id}`));
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -224,7 +229,7 @@ window.viewProject = async function(id) {
 
 window.viewVendor = async function(id) {
     try {
-        const response = await fetch(`${API_BASE_URL}/vendors/${id}`);
+        const response = await fetch(getApiUrl(`/vendors/${id}`));
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -265,7 +270,7 @@ window.viewVendor = async function(id) {
 
 window.viewLead = async function(id) {
     try {
-        const response = await fetch(`${API_BASE_URL}/leads/${id}`);
+        const response = await fetch(getApiUrl(`/leads/${id}`));
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -320,7 +325,7 @@ async function createLead() {
     console.log('Sending lead data:', leadData);
 
     try {
-        const response = await fetch(`${API_BASE_URL}/leads/`, {
+        const response = await fetch(getApiUrl('/leads/'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -404,7 +409,7 @@ function showAlert(type, message) {
 // Update loadLeads function to use the new status badge formatter
 async function loadLeads() {
     try {
-        const response = await fetch(`${API_BASE_URL}/leads/`);
+        const response = await fetch(getApiUrl('/leads/'));
         const leads = await response.json();
         
         const activeLeadsTableBody = document.getElementById('leadsTableBody');
@@ -482,7 +487,7 @@ async function deleteVendor(id) {
     if (!confirm('Are you sure you want to delete this vendor?')) return;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/vendors/${id}`, {
+        const response = await fetch(getApiUrl(`/vendors/${id}`), {
             method: 'DELETE'
         });
         
@@ -501,7 +506,7 @@ async function deleteCustomer(id) {
     if (!confirm('Are you sure you want to delete this customer?')) return;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+        const response = await fetch(getApiUrl(`/customers/${id}`), {
             method: 'DELETE'
         });
         
@@ -520,7 +525,7 @@ async function deleteProject(id) {
     if (!confirm('Are you sure you want to delete this project?')) return;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+        const response = await fetch(getApiUrl(`/projects/${id}`), {
             method: 'DELETE'
         });
         
@@ -541,7 +546,7 @@ async function deleteLead(leadId) {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/leads/${leadId}`, {
+        const response = await fetch(getApiUrl(`/leads/${leadId}`), {
             method: 'DELETE'
         });
 
@@ -564,7 +569,7 @@ async function loadVendors() {
     if (!vendorsList) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/vendors/`);
+        const response = await fetch(getApiUrl('/vendors/'));
         if (!response.ok) throw new Error('Failed to fetch vendors');
         const vendors = await response.json();
 
@@ -587,7 +592,7 @@ async function loadVendors() {
 }
 
 async function loadCustomers() {
-    fetch(`${API_BASE_URL}/customers/`)
+    fetch(getApiUrl('/customers/'))
         .then(response => response.json())
         .then(customers => {
             const tbody = document.getElementById('customersList');
@@ -623,7 +628,7 @@ async function loadProjects() {
     if (!projectsList) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/projects/`);
+        const response = await fetch(getApiUrl('/projects/'));
         if (!response.ok) throw new Error('Failed to fetch projects');
         const projects = await response.json();
 
@@ -649,7 +654,7 @@ async function loadProjects() {
 // Dashboard functions
 async function loadDashboardStats() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/dashboard/stats`);
+        const response = await fetch(getApiUrl('/api/dashboard/stats'));
         if (!response.ok) {
             throw new Error('Failed to fetch dashboard stats');
         }
@@ -789,7 +794,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/vendors/`, {
+                const response = await fetch(getApiUrl('/vendors/'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -829,7 +834,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/leads/`, {
+                const response = await fetch(getApiUrl('/leads/'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -868,7 +873,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/interactions/`, {
+                const response = await fetch(getApiUrl('/interactions/'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -906,7 +911,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/notifications/`, {
+                const response = await fetch(getApiUrl('/notifications/'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -934,7 +939,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!leadsList) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/leads/`);
+            const response = await fetch(getApiUrl('/leads/'));
             const leads = await response.json();
 
             leadsList.innerHTML = leads.map(lead => `
@@ -962,7 +967,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!customerSelect) return;
 
         try {
-            const customersResponse = await fetch(`${API_BASE_URL}/customers/`);
+            const customersResponse = await fetch(getApiUrl('/customers/'));
             const customers = await customersResponse.json();
 
             // Clear existing options
@@ -983,7 +988,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 try {
-                    const projectsResponse = await fetch(`${API_BASE_URL}/customers/${customerId}/projects`);
+                    const projectsResponse = await fetch(getApiUrl(`/customers/${customerId}/projects`));
                     const projects = await projectsResponse.json();
 
                     projectSelect.innerHTML = '<option value="">Select Project</option>';
@@ -1009,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!customerSelect) return;
 
         try {
-            const customersResponse = await fetch(`${API_BASE_URL}/customers/`);
+            const customersResponse = await fetch(getApiUrl('/customers/'));
             const customers = await customersResponse.json();
 
             // Clear existing options
@@ -1030,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 try {
-                    const projectsResponse = await fetch(`${API_BASE_URL}/customers/${customerId}/projects`);
+                    const projectsResponse = await fetch(getApiUrl(`/customers/${customerId}/projects`));
                     const projects = await projectsResponse.json();
 
                     projectSelect.innerHTML = '<option value="">Select Project</option>';
@@ -1055,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!interactionsList) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/interactions/`);
+            const response = await fetch(getApiUrl('/interactions/'));
             const interactions = await response.json();
 
             interactionsList.innerHTML = interactions.map(interaction => `
@@ -1081,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!notificationsList) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/notifications/`);
+            const response = await fetch(getApiUrl('/notifications/'));
             const notifications = await response.json();
 
             notificationsList.innerHTML = notifications.map(notification => `
@@ -1116,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/customers/`, {
+                const response = await fetch(getApiUrl('/customers/'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1155,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/projects/`, {
+                const response = await fetch(getApiUrl('/projects/'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1194,7 +1199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!customerSelect) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/customers/`);
+            const response = await fetch(getApiUrl('/customers/'));
             const customers = await response.json();
 
             // Clear existing options except the first one
@@ -1248,5 +1253,3 @@ document.querySelectorAll('.nav-link').forEach(link => {
         }
     });
 });
-
-{{ }} 
